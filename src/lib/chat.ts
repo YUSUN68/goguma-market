@@ -18,6 +18,8 @@ export type ChatRoom = {
   seller_id: string;
   last_message: string | null;
   last_message_at: string | null;
+  buyer_last_read_at: string | null; // 구매자가 마지막으로 읽은 시각 (읽음 표시용)
+  seller_last_read_at: string | null;
   created_at: string;
   product: { title: string; price: number; status: string; image_paths: string[] } | null;
   buyer: { nickname: string } | null;
@@ -38,7 +40,7 @@ export type Notification = {
 
 // chat_rooms는 profiles를 두 번(구매자, 판매자) 가리켜서, 어느 외래키인지 꼭 적어요
 const ROOM_COLUMNS =
-  "id, product_id, buyer_id, seller_id, last_message, last_message_at, created_at, " +
+  "id, product_id, buyer_id, seller_id, last_message, last_message_at, buyer_last_read_at, seller_last_read_at, created_at, " +
   "product:products(title, price, status, image_paths), " +
   "buyer:profiles!chat_rooms_buyer_id_fkey(nickname), " +
   "seller:profiles!chat_rooms_seller_id_fkey(nickname)";

@@ -9,6 +9,7 @@ import { STATUSES, categoryOf, formatPrice, imageUrl, timeAgo } from "@/lib/prod
 import Gallery from "./Gallery";
 import OwnerActions from "./OwnerActions";
 import { startChat } from "@/app/chat/actions";
+import ChatButton from "./ChatButton";
 
 type Params = PageProps<"/products/[id]">["params"];
 
@@ -77,6 +78,9 @@ async function ProductDetail({ params }: { params: Params }) {
             {isMine && product.like_count > 0 && (
               <span className="text-xs font-semibold text-rose-500">· ♥ {product.like_count}명이 좋아해요</span>
             )}
+            {isMine && product.chat_count > 0 && (
+              <span className="text-xs font-semibold text-ink-soft">· 💬 채팅 {product.chat_count}개</span>
+            )}
           </div>
           <h1 className="text-xl font-extrabold sm:text-2xl">{product.title}</h1>
           <p className="mt-1 text-2xl font-extrabold text-skin">{formatPrice(product.price)}</p>
@@ -102,9 +106,7 @@ async function ProductDetail({ params }: { params: Params }) {
               {me ? (
                 // 서버 액션에 상품 id를 미리 묶어서(bind) 넘겨요
                 <form action={startChat.bind(null, product.id)} className="flex-1">
-                  <button className="w-full rounded-2xl bg-skin py-3.5 font-bold text-white transition hover:bg-skin-dark active:scale-[0.99]">
-                    💬 채팅하기
-                  </button>
+                  <ChatButton />
                 </form>
               ) : (
                 <Link

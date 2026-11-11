@@ -8,16 +8,17 @@ import type { ChatMessage } from "@/lib/chat";
 // 상품 상세의 "채팅하기" 버튼: 이미 방이 있으면 그 방으로, 없으면 새로 만들어서 이동해요
 export async function startChat(productId: number) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect(`/login?next=/products/${productId}`);
+  // getClaims는 토큰 서명을 서버에서 바로 확인해서 Supabase에 다시 묻지 않아요 (getUser보다 빨라요).
+  // 진짜 권한 확인은 아래 insert/select에서 RLS가 해요.
+  const { data } = await supabase.auth.getClaims();
+  const userId = data?.claims.sub;
+  if (!userId) redirect(`/login?next=/products/${productId}`);
 
   const { data: existing } = await supabase
     .from("chat_rooms")
     .select("id")
     .eq("product_id", productId)
-    .eq("buyer_id", user.id)
+    .eq("buyer_id", userId)
     .maybeSingle();
   if (existing) redirect(`/chat/${existing.id}`);
 
@@ -55,13 +56,9 @@ export async function sendMessage(roomId: number, text: string): Promise<SendRes
   return { message: data as ChatMessage };
 }
 
-// 방을 보고 있으면 그 방의 채팅 알림을 '읽음'으로 바꿔요
+// 방을 보고 있으면 읽음 처리해요: 내 '마지막으로 읽은 시각' 갱신 + 이 방 채팅 알림 읽음.
+// DB 함수(mark_room_read)를 rpc로 불러요. 함수 안에서 auth.uid()로 '나'만 바꿔요.
 export async function markRoomRead(roomId: number) {
   const supabase = await createClient();
-  await supabase
-    .from("notifications")
-    .update({ read_at: new Date().toISOString() })
-    .eq("room_id", roomId)
-    .eq("type", "chat")
-    .is("read_at", null);
+  await supabase.rpc("mark_room_read", { p_room_id: roomId });
 }

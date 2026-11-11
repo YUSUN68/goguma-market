@@ -34,6 +34,7 @@ export type Product = {
   status: ProductStatus;
   image_paths: string[];
   like_count: number;
+  chat_count: number; // 메시지가 오간 채팅방 수 (DB 트리거가 세요)
   created_at: string;
   seller: { nickname: string } | null;
 };

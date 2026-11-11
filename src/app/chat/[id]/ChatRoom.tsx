@@ -10,16 +10,27 @@ type Props = {
   roomId: number;
   myId: string;
   otherName: string;
+  iAmSeller: boolean;
+  initialOtherReadAt: string | null;
   initialMessages: ChatMessage[];
 };
 
-// 보내는 중인 메시지는 pending 표시를 해서 흐리게 보여줘요
-type ShownMessage = ChatMessage & { pending?: boolean };
+// 보내는 중인 메시지는 pending 표시를 해서 흐리게 보여줘요.
+// afterId: 보낼 때 화면에 있던 가장 큰 메시지 id (진짜 메시지가 도착했는지 알아보는 데 써요)
+type ShownMessage = ChatMessage & { pending?: boolean; afterId?: number };
 
-export default function ChatRoom({ roomId, myId, otherName, initialMessages }: Props) {
+export default function ChatRoom({ roomId, myId, otherName, iAmSeller, initialOtherReadAt, initialMessages }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
-  // useOptimistic: 서버 응답 전에 내 메시지를 먼저 화면에 띄워요. 응답이 오면 진짜 메시지로 바뀌어요.
-  const [shown, addOptimistic] = useOptimistic<ShownMessage[], ShownMessage>(messages, (state, m) => [...state, m]);
+  // 상대가 마지막으로 읽은 시각. 이보다 먼저 보낸 내 메시지는 '읽음'이에요.
+  const [otherReadAt, setOtherReadAt] = useState(initialOtherReadAt);
+  // useOptimistic: 서버 응답 전에 내 메시지를 먼저 화면에 띄워요.
+  // 진짜 메시지(같은 내용, 더 큰 id)가 이미 목록에 들어왔으면 임시 메시지는 빼요.
+  // (안 빼면 진짜 메시지와 '보내는 중'이 잠깐 두 개로 보여요)
+  const [shown, addOptimistic] = useOptimistic<ShownMessage[], ShownMessage>(messages, (state, temp) =>
+    state.some((m) => m.id > (temp.afterId ?? 0) && m.sender_id === temp.sender_id && m.body === temp.body)
+      ? state
+      : [...state, temp],
+  );
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
@@ -32,15 +43,22 @@ export default function ChatRoom({ roomId, myId, otherName, initialMessages }: P
 
   // Realtime: 이 방에 새 메시지가 INSERT되면 Supabase가 바로 알려 줘요 (RLS로 이 방 사람만 받아요)
   useEffect(() => {
-    // 방에 들어오면 이 방 알림을 읽음 처리하고, 헤더 종 아이콘에도 알려요
-    const markRead = () => markRoomRead(roomId).then(announceNotificationsRead);
+    // 읽음 처리 + 헤더 종 아이콘에 알리기.
+    // 다른 탭을 보고 있을 때(화면이 안 보일 때)는 읽은 게 아니니까 하지 않아요.
+    const markRead = () => {
+      if (document.visibilityState === "visible") markRoomRead(roomId).then(announceNotificationsRead);
+    };
     markRead();
+    // 다른 탭에 있다가 이 탭으로 돌아오면 그때 읽음 처리해요
+    document.addEventListener("visibilitychange", markRead);
+
     let cleanup = () => {};
     let cancelled = false;
     createRealtimeClient().then((supabase) => {
       if (cancelled) return; // 구독 준비 중에 화면을 떠났으면 그만둬요
       const channel = supabase
         .channel(`room-${roomId}`)
+        // 새 메시지 도착
         .on(
           "postgres_changes",
           { event: "INSERT", schema: "public", table: "chat_messages", filter: `room_id=eq.${roomId}` },
@@ -51,14 +69,24 @@ export default function ChatRoom({ roomId, myId, otherName, initialMessages }: P
             if (m.sender_id !== myId) markRead();
           },
         )
+        // 방 정보가 바뀜 → 상대가 읽었으면 '안 읽음'을 '읽음'으로
+        .on(
+          "postgres_changes",
+          { event: "UPDATE", schema: "public", table: "chat_rooms", filter: `id=eq.${roomId}` },
+          (payload) => {
+            const room = payload.new as { buyer_last_read_at: string | null; seller_last_read_at: string | null };
+            setOtherReadAt(iAmSeller ? room.buyer_last_read_at : room.seller_last_read_at);
+          },
+        )
         .subscribe();
       cleanup = () => supabase.removeChannel(channel);
     });
     return () => {
       cancelled = true;
+      document.removeEventListener("visibilitychange", markRead);
       cleanup();
     };
-  }, [roomId, myId]);
+  }, [roomId, myId, iAmSeller]);
 
   // 새 메시지가 생기면 맨 아래로 스크롤
   useEffect(() => {
@@ -70,6 +98,7 @@ export default function ChatRoom({ roomId, myId, otherName, initialMessages }: P
     if (!body) return;
     setText("");
     setError(null);
+    const afterId = messages.reduce((max, m) => Math.max(max, m.id), 0);
     startTransition(async () => {
       addOptimistic({
         id: -Date.now(),
@@ -78,9 +107,11 @@ export default function ChatRoom({ roomId, myId, otherName, initialMessages }: P
         body,
         created_at: new Date().toISOString(),
         pending: true,
+        afterId,
       });
       const result = await sendMessage(roomId, body);
-      if (result.message) addMessage(result.message);
+      // await 뒤의 상태 변경도 transition으로 묶어야, 임시 메시지가 빠지는 것과 같은 순간에 화면에 반영돼요
+      if (result.message) startTransition(() => addMessage(result.message!));
       else {
         setError(result.error ?? "메시지를 보내지 못했어요.");
         setText(body); // 실패하면 입력칸에 되돌려 놓아요
@@ -112,8 +143,16 @@ export default function ChatRoom({ roomId, myId, otherName, initialMessages }: P
                 >
                   {m.body}
                 </p>
-                <span className="shrink-0 text-[10px] text-ink-soft">
-                  {m.pending ? "보내는 중" : timeOf(m.created_at)}
+                <span className={`flex shrink-0 flex-col text-[10px] text-ink-soft ${mine ? "items-end" : ""}`}>
+                  {/* 내 메시지: 상대가 마지막으로 읽은 시각보다 먼저 보낸 거면 '읽음' */}
+                  {mine && !m.pending && (
+                    otherReadAt && Date.parse(m.created_at) <= Date.parse(otherReadAt) ? (
+                      <span>읽음</span>
+                    ) : (
+                      <span className="font-bold text-flesh">안 읽음</span>
+                    )
+                  )}
+                  <span>{m.pending ? "보내는 중" : timeOf(m.created_at)}</span>
                 </span>
               </div>
             </div>

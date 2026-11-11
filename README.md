@@ -92,7 +92,8 @@ npm run dev
 | --- | --- |
 | 상품 상세 '채팅하기' → 방 만들기(있으면 그 방으로) | `src/app/chat/actions.ts` → `startChat` |
 | 채팅 목록 (`/chat`, 안 읽은 방에 빨간 점) | `src/app/chat/page.tsx` |
-| 채팅방 (`/chat/[id]`, Realtime으로 바로 도착, `useOptimistic`으로 바로 표시) | `src/app/chat/[id]/page.tsx`, `ChatRoom.tsx` |
+| 채팅방 (`/chat/[id]`, Realtime으로 바로 도착, `useOptimistic`으로 바로 표시, 읽음/안 읽음) | `src/app/chat/[id]/page.tsx`, `ChatRoom.tsx` |
+| 채팅하기 버튼 (누르면 '채팅방 여는 중…', `useFormStatus`) | `src/app/products/[id]/ChatButton.tsx` |
 | 헤더 💬 채팅 · 🔔 알림 아이콘 (새 알림이 오면 빨간 점) | `src/components/HeaderIcons.tsx` |
 | 알림 목록 (`/notifications`, 채팅·좋아요, 열면 모두 읽음) | `src/app/notifications/` |
 | 채팅·알림 조회 함수와 타입 | `src/lib/chat.ts` |
@@ -110,12 +111,30 @@ npm run dev
   - `chat_messages_after_insert` 트리거: 방의 마지막 메시지 갱신 + 상대방 알림 (같은 방의 안 읽은 알림이 있으면 새로 쌓지 않고 내용만 바꿔요)
   - `likes_notify` 트리거: 좋아요 → 판매자 알림, 좋아요 취소 → 안 읽은 그 알림 삭제
 - `chat_messages`, `notifications`를 Realtime(`supabase_realtime`)에 추가했어요.
+
+### 읽음 표시 (마이그레이션 `goguma_chat_read_receipts`)
+- `chat_rooms.buyer_last_read_at`, `seller_last_read_at` — 각자 이 방을 마지막으로 읽은 시각.
+  내 메시지가 상대의 '마지막으로 읽은 시각'보다 먼저면 **읽음**, 아니면 **안 읽음**으로 보여요.
+- `mark_room_read(room_id)` 함수(security definer) — 내 읽은 시각 갱신 + 이 방 채팅 알림 읽음을 한 번에.
+  함수 안에서 `auth.uid()`로 '나'의 칸만 바꿔서, 남의 방·남의 칸은 못 바꿔요.
+  (보안 어드바이저가 "로그인 사용자가 security definer 함수를 부를 수 있다"고 경고하는데, 일부러 그렇게 한 거예요)
+- `chat_rooms`도 Realtime에 추가 → 상대가 읽는 순간 '안 읽음'이 '읽음'으로 바뀌어요.
+- 다른 탭을 보고 있을 때 온 메시지는 읽음 처리하지 않고, 탭으로 돌아왔을 때 읽음 처리해요.
+
+### 채팅 수 (마이그레이션 `goguma_product_chat_count`)
+- 상품 카드의 ♥ 옆에 💬 채팅 수를 보여줘요 (`src/components/ProductCard.tsx`). 내 상품 상세에도 보여요.
+- `products.chat_count` — **메시지가 1개 이상 오간 채팅방 수**예요. '채팅하기'만 누르고 말 안 한 방은 안 세요.
+  chat_rooms는 당사자만 볼 수 있어서 남이 셀 수 없으니, `like_count`처럼 상품에 숫자로 저장해요.
+- 방의 첫 메시지 때 +1 (`chat_message_after_insert`), 메시지가 있던 방이 지워지면 −1 (`chat_rooms_after_delete`).
+- `set_updated_at`은 `chat_count`가 바뀔 때도 수정 시각을 건드리지 않아요.
 - ⚠️ chat_rooms·notifications는 profiles를 두 번 가리켜요. 조인할 때 외래키 이름을 꼭 적어요
   (예: `buyer:profiles!chat_rooms_buyer_id_fkey(nickname)`).
 
 ## 배포
 - https://goguma-market-flame.vercel.app (Vercel) — `main`에 push하면 자동 배포돼요
 - 환경 변수 2개(`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`)는 Vercel 프로젝트 설정에 있어요
+- `vercel.json`의 `"regions": ["icn1"]` — 서버 함수를 **서울**에서 실행해요. Supabase DB도 서울(ap-northeast-2)이라
+  DB에 물어볼 때마다 미국(기본값 `iad1`)까지 왕복하지 않아도 돼서 훨씬 빨라요.
 
 ## 다음 단계 아이디어
 1. 검색

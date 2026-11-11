@@ -4,7 +4,7 @@ import type { CategoryId, Product } from "@/lib/products";
 // profiles 테이블을 seller라는 이름으로 같이 가져와요.
 // likes 테이블도 products와 profiles를 잇고 있어서, 어떤 외래키로 잇는지 !products_seller_id_fkey로 꼭 지정해요.
 const PRODUCT_COLUMNS =
-  "id, seller_id, title, description, price, category, status, image_paths, like_count, created_at, seller:profiles!products_seller_id_fkey(nickname)";
+  "id, seller_id, title, description, price, category, status, image_paths, like_count, chat_count, created_at, seller:profiles!products_seller_id_fkey(nickname)";
 
 export async function getProducts(category?: CategoryId) {
   const supabase = await createClient();

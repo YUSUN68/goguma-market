@@ -38,11 +38,33 @@ export default function ProductCard({ product, now }: { product: Product; now: n
           <p className="truncate">
             {product.seller?.nickname ?? "알 수 없음"} · {timeAgo(product.created_at, now)}
           </p>
-          {product.like_count > 0 && (
-            <span className="shrink-0 font-semibold text-rose-500">♥ {product.like_count}</span>
+          {/* 0이면 숨겨요. 좋아요(♥)와 채팅(💬) 수를 나란히 보여줘요 */}
+          {(product.like_count > 0 || product.chat_count > 0) && (
+            <span className="flex shrink-0 items-center gap-1.5 font-semibold">
+              {product.chat_count > 0 && (
+                <span className="flex items-center gap-0.5 text-ink-soft" aria-label={`채팅 ${product.chat_count}개`}>
+                  <ChatIcon />
+                  {product.chat_count}
+                </span>
+              )}
+              {product.like_count > 0 && (
+                <span className="text-rose-500" aria-label={`좋아요 ${product.like_count}개`}>
+                  ♥ {product.like_count}
+                </span>
+              )}
+            </span>
           )}
         </div>
       </div>
     </Link>
+  );
+}
+
+// 헤더의 채팅 아이콘과 같은 말풍선 모양 (글자 크기에 맞춘 작은 버전)
+function ChatIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+      <path strokeLinejoin="round" d="M4 5h16v11H9l-5 4V5Z" />
+    </svg>
   );
 }

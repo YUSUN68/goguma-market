@@ -73,7 +73,14 @@ async function RoomContent({ params }: { params: Params }) {
         )}
       </header>
 
-      <ChatRoom roomId={room.id} myId={me.id} otherName={other} initialMessages={messages} />
+      <ChatRoom
+        roomId={room.id}
+        myId={me.id}
+        otherName={other}
+        iAmSeller={iAmSeller}
+        initialOtherReadAt={iAmSeller ? room.buyer_last_read_at : room.seller_last_read_at}
+        initialMessages={messages}
+      />
     </section>
   );
 }
