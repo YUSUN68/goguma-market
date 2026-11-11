@@ -59,7 +59,24 @@ npm run dev
 
 로그인이 필요한 경로는 `src/lib/supabase/proxy.ts`의 `PROTECTED_PATHS`(정규식)에 모여 있어요.
 
+## 4단계: 좋아요(찜)
+
+| 기능 | 파일 |
+| --- | --- |
+| 하트 버튼 (누르면 바로 반영되는 `useOptimistic`) | `src/components/LikeButton.tsx` |
+| 좋아요 누르기/취소 서버 액션 | `src/app/products/actions.ts` → `toggleLike` |
+| 마이페이지 '찜한 물건' 탭 (`/me?tab=likes`) | `src/app/me/page.tsx` |
+
+### DB
+- `public.likes` (user_id, product_id) — 누가 뭘 찜했는지는 본인만 볼 수 있어요 (RLS)
+- `products.like_count` — `likes_sync_count` 트리거가 자동으로 올리고 내려요
+- ⚠️ likes가 products와 profiles를 잇게 되면서 관계가 2개가 됐어요. 그래서 판매자 조인은
+  `seller:profiles!products_seller_id_fkey(nickname)` 처럼 외래키 이름을 꼭 적어요.
+
+## 배포
+- https://goguma-market-flame.vercel.app (Vercel) — `main`에 push하면 자동 배포돼요
+- 환경 변수 2개(`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`)는 Vercel 프로젝트 설정에 있어요
+
 ## 다음 단계 아이디어
-1. 검색, 찜하기
+1. 검색
 2. 1:1 채팅 (Supabase Realtime)
-3. 배포 (가계부와 다른 링크로, 예: Vercel)
