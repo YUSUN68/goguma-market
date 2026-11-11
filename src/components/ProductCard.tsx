@@ -34,9 +34,14 @@ export default function ProductCard({ product, now }: { product: Product; now: n
       <div className="px-1 pb-1 pt-2.5">
         <h3 className="truncate text-[15px] font-semibold">{product.title}</h3>
         <p className="mt-0.5 font-extrabold text-skin">{formatPrice(product.price)}</p>
-        <p className="mt-1 truncate text-xs text-ink-soft">
-          {product.seller?.nickname ?? "알 수 없음"} · {timeAgo(product.created_at, now)}
-        </p>
+        <div className="mt-1 flex items-center justify-between gap-2 text-xs text-ink-soft">
+          <p className="truncate">
+            {product.seller?.nickname ?? "알 수 없음"} · {timeAgo(product.created_at, now)}
+          </p>
+          {product.like_count > 0 && (
+            <span className="shrink-0 font-semibold text-rose-500">♥ {product.like_count}</span>
+          )}
+        </div>
       </div>
     </Link>
   );

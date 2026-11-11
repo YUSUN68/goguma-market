@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { getProductsBySeller } from "@/lib/queries";
+import { getLikedProducts, getProductsBySeller } from "@/lib/queries";
 import { STATUSES, type ProductStatus } from "@/lib/products";
 import ProductCard from "@/components/ProductCard";
 import { GogumaIcon } from "@/components/Logo";
@@ -28,10 +28,11 @@ async function MyContent({ searchParams }: { searchParams: SearchParams }) {
   const me = await getCurrentUser();
   if (!me) redirect("/login?next=/me");
 
-  const { status } = await searchParams;
+  const { status, tab } = await searchParams;
   const selected = typeof status === "string" && status in STATUSES ? (status as ProductStatus) : undefined;
+  const showLikes = tab === "likes";
 
-  const all = await getProductsBySeller(me.id);
+  const [all, liked] = await Promise.all([getProductsBySeller(me.id), getLikedProducts(me.id)]);
   const count = (s: ProductStatus) => all.filter((p) => p.status === s).length;
   const products = selected ? all.filter((p) => p.status === selected) : all;
   // eslint-disable-next-line react-hooks/purity -- 서버에서 요청마다 한 번 계산하는 현재 시각
@@ -64,18 +65,40 @@ async function MyContent({ searchParams }: { searchParams: SearchParams }) {
         </dl>
       </section>
 
-      {/* 내 판매 목록 */}
-      <section className="mt-8">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-extrabold">내 판매 목록</h2>
-          <Link
-            href="/products/new"
-            className="rounded-full bg-skin px-4 py-2 text-sm font-bold text-white shadow-card transition hover:bg-skin-dark"
-          >
-            + 판매하기
-          </Link>
-        </div>
+      {/* 큰 탭: 판매 목록 / 찜한 물건 */}
+      <div className="mt-8 mb-4 flex flex-wrap items-center justify-between gap-3">
+        <nav className="flex gap-5" aria-label="마이페이지 메뉴">
+          <BigTab href="/me" active={!showLikes}>
+            내 판매 목록
+          </BigTab>
+          <BigTab href="/me?tab=likes" active={showLikes}>
+            찜한 물건 <span className="text-rose-500">♥ {liked.length}</span>
+          </BigTab>
+        </nav>
+        <Link
+          href="/products/new"
+          className="rounded-full bg-skin px-4 py-2 text-sm font-bold text-white shadow-card transition hover:bg-skin-dark"
+        >
+          + 판매하기
+        </Link>
+      </div>
 
+      {showLikes ? (
+        <section>
+          {liked.length > 0 ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+              {liked.map((p) => (
+                <ProductCard key={p.id} product={p} now={now} />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-3xl border border-dashed border-line bg-white/60 px-6 py-12 text-center text-sm text-ink-soft">
+              아직 찜한 물건이 없어요. 마음에 드는 물건에 ♥를 눌러 보세요!
+            </div>
+          )}
+        </section>
+      ) : (
+      <section>
         <nav className="-mx-4 mb-5 flex gap-2 overflow-x-auto px-4" aria-label="거래 상태">
           <Tab href="/me" active={!selected}>
             전체 {all.length}
@@ -99,7 +122,22 @@ async function MyContent({ searchParams }: { searchParams: SearchParams }) {
           </div>
         )}
       </section>
+      )}
     </>
+  );
+}
+
+function BigTab({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      scroll={false}
+      className={`border-b-2 pb-1 text-lg font-extrabold transition ${
+        active ? "border-skin text-ink" : "border-transparent text-ink-soft hover:text-ink"
+      }`}
+    >
+      {children}
+    </Link>
   );
 }
 

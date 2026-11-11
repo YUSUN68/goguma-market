@@ -188,3 +188,23 @@ export async function deleteProduct(id: number) {
   revalidatePath("/me");
   redirect("/");
 }
+
+// 좋아요 누르기/취소. liked = 지금 화면에 보이는 상태(true면 취소, false면 추가)
+export async function toggleLike(productId: number, liked: boolean) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect(`/login?next=/products/${productId}`);
+
+  if (liked) {
+    await supabase.from("likes").delete().eq("user_id", user.id).eq("product_id", productId);
+  } else {
+    // 이미 눌러져 있으면(두 번 클릭 등) 기본키 중복 에러가 나는데, 결과는 같으니 무시해요
+    await supabase.from("likes").insert({ product_id: productId });
+  }
+
+  revalidatePath(`/products/${productId}`);
+  revalidatePath("/");
+  revalidatePath("/me");
+}

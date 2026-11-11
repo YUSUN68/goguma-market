@@ -2,7 +2,8 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getProduct } from "@/lib/queries";
+import { getProduct, isLikedByMe } from "@/lib/queries";
+import LikeButton from "@/components/LikeButton";
 import { getCurrentUser } from "@/lib/auth";
 import { STATUSES, categoryOf, formatPrice, imageUrl, timeAgo } from "@/lib/products";
 import Gallery from "./Gallery";
@@ -42,6 +43,7 @@ async function ProductDetail({ params }: { params: Params }) {
   const [product, me] = await Promise.all([getProduct(id), getCurrentUser()]);
   if (!product) notFound();
 
+  const liked = await isLikedByMe(product.id, me?.id);
   const isMine = me?.id === product.seller_id;
   const status = STATUSES[product.status];
   const category = categoryOf(product.category);
@@ -71,6 +73,9 @@ async function ProductDetail({ params }: { params: Params }) {
               {category.emoji} {category.label}
             </Link>
             <span className="text-xs text-ink-soft">· {timeAgo(product.created_at)}</span>
+            {isMine && product.like_count > 0 && (
+              <span className="text-xs font-semibold text-rose-500">· ♥ {product.like_count}명이 좋아해요</span>
+            )}
           </div>
           <h1 className="text-xl font-extrabold sm:text-2xl">{product.title}</h1>
           <p className="mt-1 text-2xl font-extrabold text-skin">{formatPrice(product.price)}</p>
@@ -86,13 +91,21 @@ async function ProductDetail({ params }: { params: Params }) {
           {isMine ? (
             <OwnerActions id={product.id} status={product.status} />
           ) : (
-            <button
-              disabled
-              className="w-full rounded-2xl bg-skin py-3.5 font-bold text-white opacity-60"
-              title="채팅 기능은 다음 단계에서 만들어요"
-            >
-              💬 채팅하기 (준비 중)
-            </button>
+            <div className="flex gap-2">
+              <LikeButton
+                productId={product.id}
+                liked={liked}
+                count={product.like_count}
+                loggedIn={!!me}
+              />
+              <button
+                disabled
+                className="flex-1 rounded-2xl bg-skin py-3.5 font-bold text-white opacity-60"
+                title="채팅 기능은 다음 단계에서 만들어요"
+              >
+                💬 채팅하기 (준비 중)
+              </button>
+            </div>
           )}
         </div>
       </div>

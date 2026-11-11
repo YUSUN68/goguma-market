@@ -33,6 +33,7 @@ export type Product = {
   category: CategoryId;
   status: ProductStatus;
   image_paths: string[];
+  like_count: number;
   created_at: string;
   seller: { nickname: string } | null;
 };
