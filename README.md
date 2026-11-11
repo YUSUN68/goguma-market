@@ -81,8 +81,10 @@ npm run dev
 | 상품 폼의 사진·카테고리·가격에도 `*` 표시 | `src/components/ProductForm.tsx` |
 
 ### 샘플 데이터
-- 판매자 **샘플이웃** (`sample-neighbor@goguma.test`) 계정으로 상품 7개를 올려 뒀어요 (사진은 캔버스로 그린 그림).
-- 비밀번호는 저장하지 않았어요. 지울 때는 Supabase에서 이 계정의 상품과 `product-images/<계정 id>/` 사진을 같이 지운 뒤 계정을 지워요.
+- 샘플 판매자 2명이 상품 12개를 올려 뒀어요 (사진은 캔버스로 그린 그림).
+  - **샘플이웃** (`sample-neighbor@goguma.test`) — 7개
+  - **옆집고구마** (`sample-neighbor2@goguma.test`) — 5개
+- 비밀번호는 저장하지 않았어요. 지울 때는 Supabase에서 이 계정들의 상품과 `product-images/<계정 id>/` 사진을 같이 지운 뒤 계정을 지워요.
 
 ## 배포
 - https://goguma-market-flame.vercel.app (Vercel) — `main`에 push하면 자동 배포돼요
