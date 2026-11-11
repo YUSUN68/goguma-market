@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useOptimistic, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useOptimistic, useRef, useState, useTransition } from "react";
 import { createRealtimeClient } from "@/lib/supabase/client";
 import { announceNotificationsRead } from "@/components/HeaderIcons";
 import type { ChatMessage } from "@/lib/chat";
@@ -36,12 +36,29 @@ export default function ChatRoom({ roomId, myId, otherName, iAmSeller, initialOt
   const [, startTransition] = useTransition();
   const bottom = useRef<HTMLDivElement>(null);
 
-  // 같은 메시지가 두 번 들어오지 않게 (내가 보낸 건 서버 응답 + Realtime 두 군데서 와요)
-  function addMessage(m: ChatMessage) {
-    setMessages((prev) => (prev.some((p) => p.id === m.id) ? prev : [...prev, m]));
-  }
+  // 메시지 합치기: 이미 있는 건 빼고(내가 보낸 건 서버 응답 + Realtime 두 군데서 와요),
+  // 여러 곳에서 순서 없이 들어올 수 있으니 id(보낸 순서)로 다시 정렬해요
+  // (useCallback: 매번 새 함수가 만들어지지 않게 해서 effect가 괜히 다시 실행되지 않게 해요)
+  const addMessages = useCallback((list: ChatMessage[]) => {
+    setMessages((prev) => {
+      const fresh = list.filter((m) => !prev.some((p) => p.id === m.id));
+      return fresh.length ? [...prev, ...fresh].sort((a, b) => a.id - b.id) : prev;
+    });
+  }, []);
+  const addMessage = useCallback((m: ChatMessage) => addMessages([m]), [addMessages]);
+
+  // 지금 화면에 있는 메시지 중 가장 큰 id (아래 '놓친 것 다시 가져오기'에서 써요)
+  const lastIdRef = useRef(0);
+  useEffect(() => {
+    lastIdRef.current = messages.reduce((max, m) => Math.max(max, m.id), 0);
+  }, [messages]);
 
   // Realtime: 이 방에 새 메시지가 INSERT되면 Supabase가 바로 알려 줘요 (RLS로 이 방 사람만 받아요)
+  //
+  // ⚠️ Next 16(cacheComponents)은 다른 페이지로 가도 이 화면을 지우지 않고 <Activity>로 숨겨 둬요.
+  // 숨겨지면 이 effect가 정리돼 Realtime 구독이 끊기고, 다시 보이면 effect가 다시 실행돼요.
+  // 그런데 화면 상태(messages 등)는 숨기기 전 그대로라서, 숨어 있던 동안 온 메시지·읽음 변화를 놓쳐요.
+  // 그래서 구독이 연결될 때마다(SUBSCRIBED) DB에서 놓친 것을 다시 가져와 채워 넣어요.
   useEffect(() => {
     // 읽음 처리 + 헤더 종 아이콘에 알리기.
     // 다른 탭을 보고 있을 때(화면이 안 보일 때)는 읽은 게 아니니까 하지 않아요.
@@ -78,15 +95,37 @@ export default function ChatRoom({ roomId, myId, otherName, iAmSeller, initialOt
             setOtherReadAt(iAmSeller ? room.buyer_last_read_at : room.seller_last_read_at);
           },
         )
-        .subscribe();
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") catchUp();
+        });
       cleanup = () => supabase.removeChannel(channel);
+
+      // 놓친 것 다시 가져오기: 마지막으로 본 메시지 이후의 메시지 + 상대가 마지막으로 읽은 시각
+      async function catchUp() {
+        const [{ data: missed }, { data: room }] = await Promise.all([
+          supabase
+            .from("chat_messages")
+            .select("id, room_id, sender_id, body, created_at")
+            .eq("room_id", roomId)
+            .gt("id", lastIdRef.current)
+            .order("id"),
+          supabase.from("chat_rooms").select("buyer_last_read_at, seller_last_read_at").eq("id", roomId).single(),
+        ]);
+        if (cancelled) return;
+        if (missed?.length) {
+          addMessages(missed as ChatMessage[]);
+          // 상대가 보낸 걸 지금 화면에서 보게 됐으니 읽음 처리
+          if (missed.some((m) => m.sender_id !== myId)) markRead();
+        }
+        if (room) setOtherReadAt(iAmSeller ? room.buyer_last_read_at : room.seller_last_read_at);
+      }
     });
     return () => {
       cancelled = true;
       document.removeEventListener("visibilitychange", markRead);
       cleanup();
     };
-  }, [roomId, myId, iAmSeller]);
+  }, [roomId, myId, iAmSeller, addMessage, addMessages]);
 
   // 새 메시지가 생기면 맨 아래로 스크롤
   useEffect(() => {

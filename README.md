@@ -120,6 +120,9 @@ npm run dev
   (보안 어드바이저가 "로그인 사용자가 security definer 함수를 부를 수 있다"고 경고하는데, 일부러 그렇게 한 거예요)
 - `chat_rooms`도 Realtime에 추가 → 상대가 읽는 순간 '안 읽음'이 '읽음'으로 바뀌어요.
 - 다른 탭을 보고 있을 때 온 메시지는 읽음 처리하지 않고, 탭으로 돌아왔을 때 읽음 처리해요.
+- ⚠️ Next 16(cacheComponents)은 다른 페이지로 가도 채팅방 화면을 지우지 않고 `<Activity>`로 **숨겨 둬요**.
+  숨어 있는 동안은 Realtime 구독이 끊겨서 새 메시지·읽음 변화를 놓쳐요. 그래서 채팅방은 구독이 연결될 때마다
+  DB에서 '마지막으로 본 메시지 이후' 메시지와 상대의 읽은 시각을 다시 가져와요 (`ChatRoom.tsx`의 `catchUp`).
 
 ### 채팅 수 (마이그레이션 `goguma_product_chat_count`)
 - 상품 카드의 ♥ 옆에 💬 채팅 수를 보여줘요 (`src/components/ProductCard.tsx`). 내 상품 상세에도 보여요.
