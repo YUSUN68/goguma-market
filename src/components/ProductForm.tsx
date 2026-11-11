@@ -4,7 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import type { ProductFormState } from "@/app/products/actions";
 import { CATEGORIES, MAX_IMAGES, imageUrl } from "@/lib/products";
 import { resizeImage } from "@/lib/resize-image";
-import FormField, { Alert, SubmitButton } from "@/components/FormField";
+import FormField, { Alert, RequiredMark, SubmitButton } from "@/components/FormField";
 
 // 사진 한 칸: 이미 올라가 있던 사진(existing) 또는 새로 고른 사진(new)
 type Slot =
@@ -105,10 +105,15 @@ export default function ProductForm({ action, initial, submitLabel }: Props) {
 
   return (
     <form action={formAction} className="space-y-6">
-      {/* 사진 */}
+      <p className="text-right text-xs text-ink-soft">
+        <span className="text-red-500">*</span> 표시는 꼭 입력해야 해요
+      </p>
+
+      {/* 사진 (1장 이상인지는 서버 액션에서 확인해요) */}
       <div>
         <p className="mb-2 text-sm font-semibold">
-          사진 <span className="text-ink-soft">({slots.length}/{MAX_IMAGES})</span>
+          사진
+          <RequiredMark /> <span className="text-ink-soft">({slots.length}/{MAX_IMAGES})</span>
           {slots.length > 1 && (
             <span className="ml-2 text-xs font-normal text-ink-soft">사진을 누르면 대표 사진이 돼요</span>
           )}
@@ -173,7 +178,10 @@ export default function ProductForm({ action, initial, submitLabel }: Props) {
 
       {/* 카테고리 */}
       <fieldset>
-        <legend className="mb-2 text-sm font-semibold">카테고리</legend>
+        <legend className="mb-2 text-sm font-semibold">
+          카테고리
+          <RequiredMark />
+        </legend>
         <div className="flex flex-wrap gap-2">
           {CATEGORIES.map((c) => (
             <label key={c.id} className="cursor-pointer">
@@ -196,6 +204,7 @@ export default function ProductForm({ action, initial, submitLabel }: Props) {
       <div className="space-y-1.5">
         <label htmlFor="price" className="block text-sm font-semibold">
           가격
+          <RequiredMark />
         </label>
         <div className="relative">
           <input

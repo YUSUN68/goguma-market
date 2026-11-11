@@ -2,12 +2,25 @@ import type { InputHTMLAttributes } from "react";
 
 type Props = InputHTMLAttributes<HTMLInputElement> & { label: string; hint?: string };
 
+// 필수 입력 칸 이름 옆에 붙이는 빨간 별표(*)
+// 화면 낭독기(스크린 리더)는 "*"만으론 뜻을 모르니, 숨긴 글자로 "(필수)"라고 알려 줘요
+export function RequiredMark() {
+  return (
+    <span className="ml-0.5 text-red-500">
+      <span aria-hidden="true">*</span>
+      <span className="sr-only">(필수)</span>
+    </span>
+  );
+}
+
 export default function FormField({ label, hint, id, ...props }: Props) {
   const inputId = id ?? props.name;
   return (
     <div className="space-y-1.5">
       <label htmlFor={inputId} className="block text-sm font-semibold text-ink">
         {label}
+        {/* required 속성이 있으면 별표를 자동으로 붙여요 */}
+        {props.required && <RequiredMark />}
       </label>
       <input
         id={inputId}

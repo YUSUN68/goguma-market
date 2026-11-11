@@ -73,6 +73,17 @@ npm run dev
 - ⚠️ likes가 products와 profiles를 잇게 되면서 관계가 2개가 됐어요. 그래서 판매자 조인은
   `seller:profiles!products_seller_id_fkey(nickname)` 처럼 외래키 이름을 꼭 적어요.
 
+## 필수 입력 표시 · 샘플 데이터
+
+| 기능 | 파일 |
+| --- | --- |
+| 필수 칸 이름 옆 빨간 `*` (`required`면 자동으로 붙어요) | `src/components/FormField.tsx` → `RequiredMark` |
+| 상품 폼의 사진·카테고리·가격에도 `*` 표시 | `src/components/ProductForm.tsx` |
+
+### 샘플 데이터
+- 판매자 **샘플이웃** (`sample-neighbor@goguma.test`) 계정으로 상품 7개를 올려 뒀어요 (사진은 캔버스로 그린 그림).
+- 비밀번호는 저장하지 않았어요. 지울 때는 Supabase에서 이 계정의 상품과 `product-images/<계정 id>/` 사진을 같이 지운 뒤 계정을 지워요.
+
 ## 배포
 - https://goguma-market-flame.vercel.app (Vercel) — `main`에 push하면 자동 배포돼요
 - 환경 변수 2개(`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`)는 Vercel 프로젝트 설정에 있어요
