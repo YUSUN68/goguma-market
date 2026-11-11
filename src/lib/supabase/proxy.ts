@@ -3,8 +3,6 @@ import { NextResponse, type NextRequest } from "next/server";
 
 // 로그인한 사람만 들어갈 수 있는 경로 (정규식, 나중에 /chat 등을 추가해요)
 const PROTECTED_PATHS = [/^\/products\/new$/, /^\/products\/\d+\/edit$/, /^\/me$/];
-// 로그인한 사람은 들어올 필요 없는 경로
-const AUTH_PATHS = ["/login", "/signup"];
 
 // 모든 요청마다 Supabase 세션(토큰)을 새로 고쳐서 쿠키에 다시 담아요.
 export async function updateSession(request: NextRequest) {
@@ -43,12 +41,10 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && AUTH_PATHS.includes(pathname)) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/";
-    url.search = "";
-    return NextResponse.redirect(url);
-  }
+  // 참고: "로그인한 사람이 /login에 오면 홈으로" 처리는 여기서 하지 않아요.
+  // getClaims는 토큰 서명만 보기 때문에, 다른 곳에서 로그아웃돼 무효가 된 세션도
+  // 로그인 상태로 착각해서 다시 로그인을 못 하게 막아 버려요.
+  // 그 처리는 서버에 직접 확인하는 (auth)/layout.tsx 에서 해요.
 
   return response;
 }

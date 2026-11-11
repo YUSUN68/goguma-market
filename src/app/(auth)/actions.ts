@@ -100,7 +100,8 @@ export async function signup(
 
 export async function logout() {
   const supabase = await createClient();
-  await supabase.auth.signOut();
+  // scope: "local" → 이 브라우저만 로그아웃 (기본값 global은 모든 기기에서 로그아웃돼요)
+  await supabase.auth.signOut({ scope: "local" });
   revalidatePath("/", "layout");
   redirect("/");
 }
