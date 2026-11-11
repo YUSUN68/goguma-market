@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+/* 🍠 고구마마켓 색상 — 고구마 껍질(보라), 속살(노랑), 크림 배경 */
+@theme {
+  --color-cream: #fff8ef;
+  --color-cream-deep: #fdebd3;
+  --color-skin: #8b3a62; /* 고구마 껍질 */
+  --color-skin-dark: #6b2a4b;
+  --color-skin-soft: #f6e3ec;
+  --color-flesh: #ffb84d; /* 군고구마 속살 */
+  --color-flesh-soft: #ffe7bf;
+  --color-ink: #2e1a24; /* 본문 글자 */
+  --color-ink-soft: #7a6470;
+  --color-line: #efdccb;
+
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system,
+    BlinkMacSystemFont, system-ui, "Apple SD Gothic Neo", "Malgun Gothic",
+    sans-serif;
+
+  --shadow-card: 0 1px 2px rgb(46 26 36 / 0.04),
+    0 8px 24px -8px rgb(139 58 98 / 0.18);
+}
+
+body {
+  background: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  letter-spacing: -0.01em;
+  word-break: keep-all;
+}
+
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.animate-pop-in { animation: pop-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(-6deg); }
+  50% { transform: rotate(6deg); }
+}
+.animate-wiggle { animation: wiggle 2.4s ease-in-out infinite; }
