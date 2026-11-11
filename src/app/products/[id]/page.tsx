@@ -8,6 +8,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { STATUSES, categoryOf, formatPrice, imageUrl, timeAgo } from "@/lib/products";
 import Gallery from "./Gallery";
 import OwnerActions from "./OwnerActions";
+import { startChat } from "@/app/chat/actions";
 
 type Params = PageProps<"/products/[id]">["params"];
 
@@ -98,14 +99,27 @@ async function ProductDetail({ params }: { params: Params }) {
                 count={product.like_count}
                 loggedIn={!!me}
               />
-              <button
-                disabled
-                className="flex-1 rounded-2xl bg-skin py-3.5 font-bold text-white opacity-60"
-                title="채팅 기능은 다음 단계에서 만들어요"
-              >
-                💬 채팅하기 (준비 중)
-              </button>
+              {me ? (
+                // 서버 액션에 상품 id를 미리 묶어서(bind) 넘겨요
+                <form action={startChat.bind(null, product.id)} className="flex-1">
+                  <button className="w-full rounded-2xl bg-skin py-3.5 font-bold text-white transition hover:bg-skin-dark active:scale-[0.99]">
+                    💬 채팅하기
+                  </button>
+                </form>
+              ) : (
+                <Link
+                  href={`/login?next=/products/${product.id}`}
+                  className="flex-1 rounded-2xl bg-skin py-3.5 text-center font-bold text-white transition hover:bg-skin-dark"
+                >
+                  💬 채팅하기
+                </Link>
+              )}
             </div>
+          )}
+          {isMine && (
+            <Link href="/chat" className="mt-3 block text-center text-sm font-semibold text-ink-soft hover:text-skin">
+              💬 이 물건에 온 채팅은 채팅 목록에서 볼 수 있어요 →
+            </Link>
           )}
         </div>
       </div>

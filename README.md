@@ -86,10 +86,36 @@ npm run dev
   - **옆집고구마** (`sample-neighbor2@goguma.test`) — 5개
 - 비밀번호는 저장하지 않았어요. 지울 때는 Supabase에서 이 계정들의 상품과 `product-images/<계정 id>/` 사진을 같이 지운 뒤 계정을 지워요.
 
+## 5단계: 채팅 · 알림
+
+| 기능 | 파일 |
+| --- | --- |
+| 상품 상세 '채팅하기' → 방 만들기(있으면 그 방으로) | `src/app/chat/actions.ts` → `startChat` |
+| 채팅 목록 (`/chat`, 안 읽은 방에 빨간 점) | `src/app/chat/page.tsx` |
+| 채팅방 (`/chat/[id]`, Realtime으로 바로 도착, `useOptimistic`으로 바로 표시) | `src/app/chat/[id]/page.tsx`, `ChatRoom.tsx` |
+| 헤더 💬 채팅 · 🔔 알림 아이콘 (새 알림이 오면 빨간 점) | `src/components/HeaderIcons.tsx` |
+| 알림 목록 (`/notifications`, 채팅·좋아요, 열면 모두 읽음) | `src/app/notifications/` |
+| 채팅·알림 조회 함수와 타입 | `src/lib/chat.ts` |
+| Realtime 구독 전에 로그인 토큰을 넣어 주는 도우미 | `src/lib/supabase/client.ts` → `createRealtimeClient` |
+
+**Realtime**: DB에 행이 추가·변경되면 Supabase가 브라우저로 바로 알려 주는 기능이에요.
+새로고침하지 않아도 메시지가 오고 종 아이콘에 점이 켜져요. RLS를 그대로 따라서 내 것만 받아요.
+
+### DB (마이그레이션 `goguma_chat_notifications`)
+- `chat_rooms` (product_id, buyer_id, seller_id, last_message…) — 상품 1개 × 구매자 1명 = 방 1개.
+  판매자는 트리거가 상품에서 채워요. 당사자 두 명만 볼 수 있어요 (RLS).
+- `chat_messages` (room_id, sender_id, body) — 방 당사자만 읽고 쓸 수 있어요.
+- `notifications` (user_id, actor_id, type `chat`/`like`, product_id, room_id, body, read_at)
+  - 본인 것만 보고, `read_at`(읽음 표시)만 바꿀 수 있어요. 만드는 건 트리거만 해요.
+  - `chat_messages_after_insert` 트리거: 방의 마지막 메시지 갱신 + 상대방 알림 (같은 방의 안 읽은 알림이 있으면 새로 쌓지 않고 내용만 바꿔요)
+  - `likes_notify` 트리거: 좋아요 → 판매자 알림, 좋아요 취소 → 안 읽은 그 알림 삭제
+- `chat_messages`, `notifications`를 Realtime(`supabase_realtime`)에 추가했어요.
+- ⚠️ chat_rooms·notifications는 profiles를 두 번 가리켜요. 조인할 때 외래키 이름을 꼭 적어요
+  (예: `buyer:profiles!chat_rooms_buyer_id_fkey(nickname)`).
+
 ## 배포
 - https://goguma-market-flame.vercel.app (Vercel) — `main`에 push하면 자동 배포돼요
 - 환경 변수 2개(`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`)는 Vercel 프로젝트 설정에 있어요
 
 ## 다음 단계 아이디어
 1. 검색
-2. 1:1 채팅 (Supabase Realtime)

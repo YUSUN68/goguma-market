@@ -31,9 +31,9 @@ export function GogumaIcon({ className = "h-8 w-8" }: { className?: string }) {
 
 export default function Logo() {
   return (
-    <Link href="/" className="group flex items-center gap-1.5">
-      <GogumaIcon className="h-9 w-9 transition-transform group-hover:-rotate-12" />
-      <span className="text-xl font-extrabold tracking-tight text-skin">
+    <Link href="/" className="group flex shrink-0 items-center gap-1 sm:gap-1.5">
+      <GogumaIcon className="h-8 w-8 transition-transform group-hover:-rotate-12 sm:h-9 sm:w-9" />
+      <span className="text-lg font-extrabold tracking-tight text-skin sm:text-xl">
         고구마<span className="text-flesh">마켓</span>
       </span>
     </Link>

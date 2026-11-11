@@ -1,8 +1,14 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-// 로그인한 사람만 들어갈 수 있는 경로 (정규식, 나중에 /chat 등을 추가해요)
-const PROTECTED_PATHS = [/^\/products\/new$/, /^\/products\/\d+\/edit$/, /^\/me$/];
+// 로그인한 사람만 들어갈 수 있는 경로 (정규식)
+const PROTECTED_PATHS = [
+  /^\/products\/new$/,
+  /^\/products\/\d+\/edit$/,
+  /^\/me$/,
+  /^\/chat(\/\d+)?$/,
+  /^\/notifications$/,
+];
 
 // 모든 요청마다 Supabase 세션(토큰)을 새로 고쳐서 쿠키에 다시 담아요.
 export async function updateSession(request: NextRequest) {
