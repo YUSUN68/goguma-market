@@ -175,9 +175,11 @@ export default function ChatRoom({ roomId, myId, otherName, iAmSeller, initialOt
             <div key={m.id}>
               {newDay && <p className="my-3 text-center text-xs text-ink-soft">{day}</p>}
               <div className={`flex items-end gap-1.5 ${mine ? "flex-row-reverse" : ""}`}>
+                {/* 보낸 메시지는 고구마 껍질색(보라), 받은 메시지는 군고구마 속살색(진한 노랑) 🍠
+                    진한 노랑 위 진한 글자(text-ink)는 명암 대비가 약 9.5:1이라 잘 읽혀요. 흰 글자는 안 돼요. */}
                 <p
                   className={`max-w-[75%] whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-[15px] ${
-                    mine ? "rounded-br-md bg-skin text-white" : "rounded-bl-md border border-line bg-white"
+                    mine ? "rounded-br-md bg-skin text-white" : "rounded-bl-md bg-flesh text-ink"
                   } ${m.pending ? "opacity-60" : ""}`}
                 >
                   {m.body}
